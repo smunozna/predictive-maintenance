@@ -1,0 +1,1579 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Predictive Maintenance | Dashboard</title>
+
+    <link rel="stylesheet" href="/static/style.css">
+
+    <!-- Biblioteca de gráficos -->
+    <script
+        src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"
+        defer>
+    </script>
+
+    <!-- Código de nuestra aplicación -->
+    <script src="/static/script.js" defer></script>
+</head>
+
+<body>
+    <div class="app-layout">
+        <!-- MENÚ LATERAL -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <span class="brand-subtitle">Condition Monitoring</span>
+                <h2>Predictive Maintenance</h2>
+                <p>Motores Turbofán</p>
+            </div>
+
+            <nav class="sidebar-nav" aria-label="Navegación principal">
+                <a href="#flota" class="nav-link active">
+                    Visión general
+                </a>
+
+                <a href="#monitorizacion" class="nav-link">
+                    Monitorización
+                </a>
+
+                <a href="#importar" class="nav-link">
+                    Importar motores
+                </a>
+
+                <a href="#informacion" class="nav-link">
+                    Información
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <p>Condition Monitoring Platform</p>
+                <small>Anomaly detection and RUL estimation</small>
+            </div>
+        </aside>
+
+        <!-- CONTENIDO PRINCIPAL -->
+        <main class="main-content">
+
+            <!-- VISTA GENERAL DE LA FLOTA -->
+            <section id="flota" class="page-section">
+                <header class="page-header">
+                    <div>
+                        <p class="section-label">PANEL DE CONTROL</p>
+                        <h1>Visión general de la flota</h1>
+                        <p class="page-description">
+                            Monitorización y estimación de la vida útil restante de los motores disponibles en la plataforma.
+                        </p>
+                    </div>
+
+                    <div class="dataset-label">
+                        Motores Turbofán
+                    </div>
+                </header>
+
+                <!-- INDICADORES PRINCIPALES -->
+                <div class="kpi-grid">
+                    <article class="kpi-card">
+                        <p class="kpi-title">Motores monitorizados</p>
+
+                        <div class="kpi-value" id="kpi-total">
+                            —
+                        </div>
+
+                        <p class="kpi-description">
+                            Motores disponibles para análisis
+                        </p>
+                    </article>
+
+                    <article class="kpi-card kpi-card--alerts">
+                        <p class="kpi-title">Alertas activas</p>
+                        <div class="kpi-value" id="kpi-alertas">
+                            —
+                        </div>
+                        <p class="kpi-description">
+                            Alertas confirmadas en el último ciclo
+                        </p>
+                    </article>
+
+                    <article class="kpi-card">
+                        <p class="kpi-title">RUL media estimada</p>
+                        <div class="kpi-value" id="kpi-rul-media">
+                            —
+                        </div>
+
+                        <p class="kpi-description">
+                            Ciclos restantes estimados por la LSTM
+                        </p>
+                    </article>
+
+                    <article class="kpi-card kpi-card--priority">
+                        <p class="kpi-title">
+                            Motor con menor RUL
+                        </p>
+
+                        <div class="kpi-value" id="kpi-motor-critico">
+                            —
+                        </div>
+
+                        <p class="kpi-description" id="kpi-motor-critico-rul">
+                            Pendiente de cargar
+                        </p>
+                    </article>
+                </div>
+
+                <!-- TABLA DE MOTORES -->
+                <section class="table-panel">
+                    <div class="panel-header">
+                        <div>
+                            <h2>Estado de los motores</h2>
+                            <p>
+                                Resultados correspondientes al último ciclo disponible de cada motor.
+                            </p>
+                        </div>
+  
+                        <div class="table-filters">
+                            <!-- BUSCADOR -->
+                            <div class="table-controls">
+                                <label for="buscar-motor">Buscar motor</label>
+                                <input type="search" id="buscar-motor" placeholder="Ej. 25" autocomplete="off">
+                            </div>
+
+                            <!-- FILTRO DE ORIGEN -->
+                            <div class="table-controls">
+                                <label for="filtro-origen">Origen</label>
+                                <select id="filtro-origen">
+                                    <option value="todos">
+                                        Todos los orígenes
+                                    </option>
+                                </select>
+                            </div>
+
+                            <!-- FILTRO DE ALERTAS -->
+                            <div class="table-controls">
+                                <label for="filtro-alertas">Estado de alerta</label>
+                                <select id="filtro-alertas">
+                                    <option value="todos">Todos los motores</option>
+                                    <option value="activas">Con alerta activa</option>
+                                    <option value="sin-alerta">Sin alerta activa</option>
+                                    <option value="historicas">Con alertas registradas</option>
+                                </select>
+                            </div>
+
+                            <!-- ORDENACIÓN -->
+                            <div class="table-controls">
+                                <label for="orden-motores">Ordenar por</label>
+                                <select id="orden-motores">
+                                    <option value="rul-asc">RUL: menor a mayor</option>
+                                    <option value="rul-desc">RUL: mayor a menor</option>
+                                    <option value="ciclo-desc">Último ciclo: mayor</option>
+                                    <option value="ciclo-asc">Último ciclo: menor</option>
+                                    <option value="motor-asc">Identificador de motor</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="motors-table">
+                            <thead>
+                                <tr>
+                                    <th>Motor</th>
+                                    <th>Origen</th>
+                                    <th>Perfil operativo</th>
+                                    <th>Último ciclo</th>
+                                    <th>Alerta actual</th>
+                                    <th>Alertas anteriores</th>
+                                    <th>RUL estimada</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="tabla-motores">
+                                <tr>
+                                    <td colspan="7">
+                                        Pendiente de cargar los datos...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p id="mensaje-flota" role="status" aria-live="polite"></p>
+                </section>
+            </section>
+
+            <!-- MONITORIZACIÓN INDIVIDUAL -->
+            <section id="monitorizacion" class="page-section">
+                <header class="page-header">
+                    <div>
+                        <p class="section-label">ANÁLISIS INDIVIDUAL</p>
+                        <h1>Monitorización de motores</h1>
+                        <p class="page-description">
+                            Consulta el estado operativo de un motor, sus anomalías detectadas y la estimación de su vida útil restante.
+                        </p>
+                    </div>
+                </header>
+
+                <div class="monitor-panel" data-vista="resumen">
+                    <p id="monitor-mensaje" role="status" aria-live="polite">
+                        Selecciona un motor desde la tabla de la flota para consultar su estado.
+                    </p>
+
+                    <!-- PESTAÑAS DE MONITORIZACIÓN -->
+                    <nav id="monitor-tabs" class="monitor-tabs" aria-label="Vistas de monitorización" hidden>
+                        <button type="button" class="monitor-tab active" data-vista="resumen" aria-pressed="true">
+                            Resumen
+                        </button>
+
+                        <button type="button" class="monitor-tab" data-vista="sensores" aria-pressed="false">
+                            Sensores
+                        </button>
+
+                        <button type="button" class="monitor-tab" data-vista="ia" aria-pressed="false">
+                            Análisis de IA
+                        </button>
+                    </nav>
+
+                    <!-- CONTEXTO DEL MOTOR EN SENSORES Y ANÁLISIS DE IA -->
+                    <div id="monitor-context" class="monitor-context" hidden>
+                        <div class="monitor-context-item">
+                            <span>Motor seleccionado</span>
+                            <strong id="context-motor">—</strong>
+                        </div>
+
+                        <div class="monitor-context-item">
+                            <span>Perfil operativo</span>
+                            <strong id="context-profile">—</strong>
+                        </div>
+
+                        <div class="monitor-context-item">
+                            <span>Régimen actual</span>
+                            <strong id="context-regime">—</strong>
+                        </div>
+
+                        <div class="monitor-context-item">
+                            <span>Ciclo consultado</span>
+                            <strong id="context-cycle">—</strong>
+                        </div>
+
+                        <div class="monitor-context-item">
+                            <span>Estado de alerta</span>
+                            <strong id="context-alert">—</strong>
+                        </div>
+
+                        <div class="monitor-context-item">
+                            <span>RUL estimada</span>
+                            <strong id="context-rul">—</strong>
+                        </div>
+                    </div>
+
+                    <div id="monitor-resumen" class="monitor-resumen" hidden>
+                        <div>
+                            <span class="monitor-label">Motor seleccionado</span>
+                            <strong id="monitor-id">—</strong>
+                        </div>
+
+                        <div>
+                            <span class="monitor-label">
+                                Perfil operativo
+                            </span>
+
+                            <strong id="monitor-profile">
+                                —
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span class="monitor-label">
+                                Régimen actual
+                            </span>
+
+                            <strong id="monitor-regime">
+                                —
+                            </strong>
+                        </div>
+
+                        <div>
+                            <span class="monitor-label">Ciclo actual</span>
+                            <strong id="monitor-ciclo">—</strong>
+                        </div>
+
+                        <div>
+                            <span class="monitor-label">Estado de alerta</span>
+                            <strong id="monitor-alerta">—</strong>
+                        </div>
+
+                        <div>
+                            <span class="monitor-label">RUL estimada</span>
+                            <strong id="monitor-rul">—</strong>
+                        </div>
+                    </div>
+
+                    <!-- ACTUALIZACIÓN DE MOTORES EXTERNOS -->
+                    <section id="update-section" class="evaluation-section" hidden>
+                        <div class="evaluation-header">
+                            <div>
+                                <h3>Actualizar historial del motor</h3>
+                                <p>
+                                    Incorpora nuevas observaciones a un motor externo ya registrado.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="import-format-note">
+                            <strong>Historial completo requerido</strong>
+
+                            <p>
+                                El CSV debe contener un único motor y todo su historial desde el ciclo 1, incluyendo tanto los ciclos ya almacenados como los nuevos.
+                            </p>
+
+                            <p>
+                                Los ciclos existentes no pueden modificarse. Si aparecen nuevas condiciones operativas, la plataforma actualizará automáticamente el perfil predictivo cuando sea necesario.
+                            </p>
+                        </div>
+
+                        <div class="import-field">
+                            <label for="update-file">Archivo CSV actualizado</label>
+                            <input type="file" id="update-file" accept=".csv,text/csv">
+                            <small>
+                                Debe utilizar el mismo formato raw admitido para la importación de motores.
+                            </small>
+                        </div>
+
+                        <div class="import-actions">
+                            <button type="button" id="update-confirm" class="import-button primary">Actualizar motor</button>
+                        </div>
+
+                        <p id="update-status" class="evaluation-message" role="status" aria-live="polite"></p>
+                    </section>
+
+                    <!-- CONTROLES DE SIMULACIÓN -->
+                    <div id="cycle-controls" class="cycle-controls" hidden>
+                        <div class="cycle-header">
+                            <div>
+                                <h3>Evolución del motor</h3>
+                                <p>
+                                    Explora el historial operativo ciclo a ciclo.
+                                </p>
+                            </div>
+
+                            <span id="cycle-indicator" class="cycle-indicator">
+                                Ciclo — / —
+                            </span>
+                        </div>
+
+                        <!-- BARRA DESLIZANTE -->
+                        <label for="cycle-slider" class="cycle-label">
+                            Ciclo de funcionamiento
+                        </label>
+
+                        <input type="range" id="cycle-slider" min="1" max="1" value="1" step="1">
+
+                        <!-- BOTONES -->
+                        <div class="cycle-actions">
+                            <button type="button" id="cycle-reset" class="cycle-button secondary">
+                                Reiniciar
+                            </button>
+
+                            <!-- REPRODUCCIÓN AUTOMÁTICA -->
+                            <div class="playback-controls">
+                                <button type="button" id="playback-toggle" class="cycle-button primary" disabled>
+                                    ▶ Reproducir
+                                </button>
+
+                                <label for="playback-speed">
+                                    Velocidad
+                                </label>
+
+                                <select id="playback-speed">
+                                    <option value="1">1×</option>
+                                    <option value="2">2×</option>
+                                    <option value="5">5×</option>
+                                </select>
+                            </div>
+
+                            <div class="cycle-navigation">
+                                <button type="button" id="cycle-prev" class="cycle-button secondary">
+                                    ← Anterior
+                                </button>
+
+                                <button type="button" id="cycle-next" class="cycle-button primary">
+                                    Siguiente →
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- EVOLUCIÓN DE ANOMALÍAS -->
+                    <section id="anomaly-chart-section" class="chart-panel" hidden>
+                        <div class="chart-header">
+                            <h3>Evolución de anomalías</h3>
+                            <p>
+                                Puntuación de Isolation Forest, umbral de detección y alertas confirmadas.
+                            </p>
+                        </div>
+
+                        <!-- INDICADORES DE DETECCIÓN DE ANOMALÍAS -->
+                        <div class="ai-metrics">
+                            <div class="ai-metric">
+                                <span>Anomaly score actual</span>
+                                <strong id="ai-score">—</strong>
+                            </div>
+
+                            <div class="ai-metric">
+                                <span>Umbral de detección</span>
+                                <strong id="ai-threshold">—</strong>
+                            </div>
+
+                            <div class="ai-metric">
+                                <span>Estado de alerta</span>
+                                <strong id="ai-status">—</strong>
+                            </div>
+
+                            <div class="ai-metric">
+                                <span>Alertas confirmadas</span>
+                                <strong id="ai-alert-count">—</strong>
+                            </div>
+                        </div>
+
+                        <p class="ai-explanation">
+                            Una alerta se activa cuando el anomaly score supera el umbral durante tres ciclos consecutivos. La puntuación no representa una probabilidad de fallo.
+                        </p>
+
+                        <div class="chart-container">
+                            <canvas id="anomaly-chart" aria-label="Evolución del anomaly score por ciclo" role="img"></canvas>
+                        </div>
+                    </section>
+
+                    <!-- EVOLUCIÓN DE VIDA ÚTIL RESTANTE -->
+                    <section id="rul-chart-section" class="chart-panel" hidden>
+                        <div class="chart-header">
+                            <h3>Evolución de la vida útil restante</h3>
+                            <p>
+                                Estimaciones de RUL generadas por la LSTM a partir de ventanas de 30 ciclos.
+                            </p>
+                        </div>
+
+                        <p id="rul-chart-message" class="rul-chart-message" hidden>
+                            La estimación de RUL estará disponible a partir del ciclo 30.
+                        </p>
+
+                        <div id="rul-chart-container" class="chart-container">
+                            <canvas id="rul-chart" aria-label="Evolución de la vida útil restante estimada por ciclo" role="img"></canvas>
+                        </div>
+                    </section>
+
+                    <!-- MODO DE EVALUACIÓN -->
+                    <section id="evaluation-section" class="evaluation-section" hidden>
+                        <div class="evaluation-header">
+                            <div>
+                                <h3>Evaluación del modelo</h3>
+                                <p>
+                                    Comparación con los valores de referencia del conjunto de test.
+                                </p>
+                            </div>
+
+                            <label class="evaluation-toggle-label">
+                                <input type="checkbox" id="evaluation-toggle">
+                                <span>Modo evaluación</span>
+                            </label>
+                        </div>
+
+                        <div id="evaluation-results" class="evaluation-results" hidden>
+                            <div class="evaluation-metric">
+                                <span>RUL real</span>
+                                <strong id="evaluation-real">—</strong>
+                            </div>
+
+                            <div class="evaluation-metric">
+                                <span>RUL real limitada</span>
+                                <strong id="evaluation-real-capped">—</strong>
+                            </div>
+
+                            <div class="evaluation-metric">
+                                <span>RUL estimada</span>
+                                <strong id="evaluation-predicted">—</strong>
+                            </div>
+
+                            <div class="evaluation-metric">
+                                <span>Error absoluto</span>
+                                <strong id="evaluation-error">—</strong>
+                            </div>
+                        </div>
+
+                        <p id="evaluation-message" class="evaluation-message" role="status" aria-live="polite"></p>
+
+                        <p class="evaluation-note">
+                            Los valores reales se utilizan exclusivamente para evaluar las predicciones. No forman parte de las entradas de los modelos.
+                        </p>
+                    </section>
+
+                    <!-- EVOLUCIÓN DE SENSORES -->
+                    <section id="sensor-chart-section" class="chart-panel" hidden>
+                        <div class="chart-header sensor-chart-header">
+                            <div>
+                                <h3>Evolución de sensores</h3>
+                                <p>
+                                    Consulta las mediciones registradas durante el funcionamiento del motor.
+                                </p>
+                            </div>
+
+                            <div class="sensor-selector-container">
+                                <label for="sensor-selector">
+                                    Sensor
+                                </label>
+
+                                <select id="sensor-selector">
+                                    <option value="sensor_2">Sensor 2</option>
+                                    <option value="sensor_3">Sensor 3</option>
+                                    <option value="sensor_4">Sensor 4</option>
+                                    <option value="sensor_7">Sensor 7</option>
+                                    <option value="sensor_8">Sensor 8</option>
+                                    <option value="sensor_9">Sensor 9</option>
+                                    <option value="sensor_11" selected>Sensor 11</option>
+                                    <option value="sensor_12">Sensor 12</option>
+                                    <option value="sensor_13">Sensor 13</option>
+                                    <option value="sensor_14">Sensor 14</option>
+                                    <option value="sensor_15">Sensor 15</option>
+                                    <option value="sensor_17">Sensor 17</option>
+                                    <option value="sensor_20">Sensor 20</option>
+                                    <option value="sensor_21">Sensor 21</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="chart-container">
+                            <canvas id="sensor-chart" aria-label="Evolución temporal del sensor seleccionado" role="img"></canvas>
+                        </div>
+                    </section>
+                </div>
+            </section>
+
+            <!-- IMPORTACIÓN DE MOTORES -->
+            <section id="importar" class="page-section">
+                <header class="page-header">
+                    <div>
+                        <p class="section-label">GESTIÓN DE DATOS</p>
+
+                        <h1>Importar motores</h1>
+
+                        <p class="page-description">
+                            Añade nuevos historiales de motores mediante archivos CSV compatibles con la estructura utilizada por los modelos.
+                        </p>
+                    </div>
+
+                    <div class="dataset-label">
+                        CSV compatible
+                    </div>
+                </header>
+
+                <section class="import-panel">
+                    <div class="import-panel-header">
+                        <div>
+                            <h2>Nueva importación</h2>
+                            <p>
+                                Selecciona un archivo CSV e indica el origen de los motores que contiene.
+                            </p>
+                        </div>
+                    </div>
+
+                <div class="import-format-note">
+                    <strong>Formato esperado</strong>
+
+                    <p>
+                        El archivo debe contener datos raw de C-MAPSS con el identificador del motor, el ciclo, las tres variables de condición operativa y los 14 sensores requeridos por los modelos.
+                    </p>
+
+                    <p>
+                        La plataforma detecta automáticamente si cada motor corresponde al perfil de condición única o al perfil multirrégimen y aplica el pipeline predictivo adecuado.
+                    </p>
+
+                    <p>
+                        Pueden incluirse también otros sensores originales de C-MAPSS. La importación utiliza los modelos ya entrenados y no realiza un nuevo entrenamiento.
+                    </p>
+                </div>
+
+                    <form id="import-form" class="import-form">
+                        <div class="import-fields">
+                            <div class="import-field">
+                                <label for="import-origin">
+                                    Origen
+                                </label>
+
+                                <input type="text" id="import-origin" maxlength="100" placeholder="Ej. Modelo de Avión CP325" autocomplete="off">
+                                
+                                <small>
+                                    Nombre que permitirá identificar la procedencia de estos motores dentro de la plataforma.
+                                </small>
+                            </div>
+
+                            <div class="import-field">
+                                <label for="import-file">
+                                    Archivo CSV
+                                </label>
+
+                                <input type="file" id="import-file" accept=".csv,text/csv">
+
+                                <small>
+                                    Solo se admitirán archivos cuya estructura sea compatible con los modelos.
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="import-actions">
+                            <button type="button" id="import-validate" class="import-button secondary">
+                                Validar CSV
+                            </button>
+                        </div>
+                    </form>
+
+                    <p id="import-status" class="import-status" role="status" aria-live="polite"></p>
+
+                    <!-- RESULTADO DE LA VALIDACIÓN -->
+                    <section id="import-validation" class="import-validation" hidden>
+                        <div class="import-validation-header">
+                            <div>
+                                <span class="import-validation-label">
+                                    VALIDACIÓN COMPLETADA
+                                </span>
+                                <h3>Archivo compatible</h3>
+                            </div>
+
+                            <span class="status-badge status-success">
+                                Estructura válida
+                            </span>
+                        </div>
+
+                        <p id="import-validation-file" class="import-file-name">
+                            —
+                        </p>
+
+                        <div class="import-summary-grid">
+                            <div class="import-summary-item">
+                                <span>Motores detectados</span>
+                                <strong id="import-summary-motors">—</strong>
+                            </div>
+
+                            <div class="import-summary-item">
+                                <span>Observaciones</span>
+                                <strong id="import-summary-observations">—</strong>
+                            </div>
+
+                            <div class="import-summary-item">
+                                <span>Sensores disponibles</span>
+                                <strong id="import-summary-sensors">—</strong>
+                            </div>
+
+                            <div class="import-summary-item">
+                                <span>Columnas</span>
+                                <strong id="import-summary-columns">—</strong>
+                            </div>
+
+                            <div class="import-summary-item">
+                                <span>Perfiles detectados</span>
+                                <strong id="import-summary-profiles">
+                                    —
+                                </strong>
+                            </div>
+                        </div>
+
+                        <div class="import-actions">
+                            <button type="button" id="import-confirm" class="import-button primary" disabled>
+                                Importar motores
+                            </button>
+                        </div>
+                    </section>
+
+                    <!-- IMPORTACIÓN COMPLETADA -->
+                    <section id="import-success" class="import-success" hidden>
+                        <div>
+                            <span class="import-success-label">
+                                IMPORTACIÓN COMPLETADA
+                            </span>
+                            <h3>Motores añadidos correctamente</h3>
+                            <p id="import-success-message">
+                                —
+                            </p>
+                        </div>
+
+                        <div class="import-actions">
+                            <a href="#flota" class="import-button primary">
+                                Ver flota
+                            </a>
+
+                            <button type="button" id="import-reset" class="import-button secondary">
+                                Importar otro CSV
+                            </button>
+                        </div>
+                    </section>
+                </section>
+            </section>
+
+            <!-- INFORMACIÓN DE LA PLATAFORMA -->
+            <section id="informacion" class="page-section">
+                <header class="page-header">
+                    <div>
+                        <p class="section-label">
+                            DOCUMENTACIÓN TÉCNICA
+                        </p>
+
+                        <h1>
+                            Información de la plataforma
+                        </h1>
+
+                        <p class="page-description">
+                            Funcionamiento del sistema de mantenimiento predictivo, perfiles operativos, modelos de inteligencia artificial e interpretación de resultados.
+                        </p>
+                    </div>
+
+                    <div class="dataset-label">
+                        NASA C-MAPSS · FD001 + FD002
+                    </div>
+                </header>
+
+                <!-- ==================================================
+                    01. DESCRIPCIÓN GENERAL
+                =================================================== -->
+                <section class="info-section">
+                    <div class="info-section-header">
+                        <span class="info-section-number">01</span>
+                        <div>
+                            <h2>Descripción general</h2>
+                            <p>
+                                Monitorización del estado y estimación de la vida útil restante de motores turbofán.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <h3>¿Qué hace esta plataforma?</h3>
+                        <p>
+                            La plataforma permite analizar la evolución de motores turbofán a partir de series temporales multivariantes obtenidas mediante sensores y variables de condición operativa.
+                        </p>
+
+                        <p>
+                            El sistema combina detección de anomalías mediante Isolation Forest y estimación de la vida útil restante mediante redes neuronales LSTM.
+                        </p>
+
+                        <p>
+                            Se utilizan dos perfiles predictivos independientes, asociados a los subconjuntos FD001 y FD002 de NASA C-MAPSS. Cada perfil dispone de su propio preprocesamiento, detector de anomalías y modelo de prognosis.
+                        </p>
+
+                        <p>
+                            Además de los motores NASA utilizados como referencia, pueden incorporarse motores externos mediante archivos CSV compatibles. La plataforma identifica automáticamente el perfil predictivo adecuado según sus condiciones operativas.
+                        </p>
+                    </div>
+
+                    <div class="info-grid">
+                        <article class="info-card">
+                            <h3>Visión general</h3>
+                            <p>
+                                Permite consultar el estado de la flota, detectar alertas activas, identificar motores con menor RUL y filtrar los equipos según su origen.
+                            </p>
+                        </article>
+
+                        <article class="info-card">
+                            <h3>Monitorización individual</h3>
+                            <p>
+                                Permite recorrer el historial de cada motor ciclo a ciclo y consultar sensores, anomalías, perfil operativo, régimen actual y estimaciones de vida útil.
+                            </p>
+                        </article>
+
+                        <article class="info-card">
+                            <h3>Importación de motores</h3>
+                            <p>
+                                Los motores externos se incorporan mediante datos raw compatibles con C-MAPSS. El sistema valida el historial y selecciona automáticamente el pipeline predictivo correspondiente.
+                            </p>
+                        </article>
+
+                        <article class="info-card">
+                            <h3>Actualización de historiales</h3>
+                            <p>
+                                Los motores externos pueden recibir nuevas observaciones conservando su historial previo. Si aparecen nuevas condiciones operativas, el perfil puede evolucionar de condición única a multirrégimen.
+                            </p>
+                        </article>
+                    </div>
+                </section>
+
+                <!-- ==================================================
+                    02. DATOS Y PERFILES
+                =================================================== -->
+                <section class="info-section">
+                    <div class="info-section-header">
+                        <span class="info-section-number">02</span>
+                        <div>
+                            <h2>Datos y perfiles predictivos</h2>
+                            <p>
+                                Subconjuntos NASA C-MAPSS utilizados por la plataforma.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="info-grid info-grid--three">
+                        <article class="info-card info-stat">
+                            <span>
+                                Motores de referencia
+                            </span>
+                            <strong>
+                                359
+                            </strong>
+                            <p>
+                                100 FD001 + 259 FD002
+                            </p>
+                        </article>
+
+                        <article class="info-card info-stat">
+                            <span>
+                                Sensores disponibles
+                            </span>
+                            <strong>
+                                21
+                            </strong>
+                            <p>
+                                Variables originales de C-MAPSS
+                            </p>
+                        </article>
+
+                        <article class="info-card info-stat">
+                            <span>
+                                Sensores seleccionados
+                            </span>
+                            <strong>
+                                14
+                            </strong>
+                            <p>
+                                Utilizados por los modelos
+                            </p>
+                        </article>
+                    </div>
+
+                    <div class="info-grid">
+                        <article class="info-card">
+                            <h3>
+                                FD001 · Condición única
+                            </h3>
+
+                            <p>
+                                FD001 contiene motores que trabajan bajo una única condición operativa y presentan un modo de degradación asociado al compresor de alta presión (HPC).
+                            </p>
+
+                            <p>
+                                Debido a que la condición operativa es prácticamente constante, los 14 sensores seleccionados pueden procesarse directamente mediante la estandarización utilizada por cada modelo.
+                            </p>
+
+                            <div class="info-inline-note">
+                                Perfil mostrado en la plataforma: <strong>Condición única</strong>.
+                            </div>
+                        </article>
+
+                        <article class="info-card">
+                            <h3>
+                                FD002 · Multirrégimen
+                            </h3>
+
+                            <p>
+                                FD002 contiene motores sometidos a seis condiciones operativas diferentes. Los niveles de los sensores pueden cambiar significativamente debido al régimen de funcionamiento y no únicamente por la degradación.
+                            </p>
+
+                            <p>
+                                Por este motivo, las señales se normalizan por régimen operativo antes de ser utilizadas por los modelos predictivos.
+                            </p>
+
+                            <div class="info-inline-note">
+                                Perfil mostrado en la plataforma: <strong>Multirrégimen</strong>.
+                            </div>
+                        </article>
+                    </div>
+
+                    <article class="info-card info-wide-card">
+                        <h3>
+                            Selección automática del perfil
+                        </h3>
+
+                        <p>
+                            En los motores NASA de referencia, el perfil se conoce directamente por el subconjunto del que procede cada trayectoria.
+                        </p>
+
+                        <p>
+                            En los motores externos, la plataforma analiza las tres variables de condición operativa y asigna cada observación a uno de los seis regímenes conocidos de FD002.
+                        </p>
+
+                        <div class="info-definition-list">
+                            <div>
+                                <strong>
+                                    Solo régimen 1
+                                </strong>
+
+                                <p>
+                                    El motor se procesa provisionalmente mediante el pipeline FD001 y se presenta como condición única.
+                                </p>
+                            </div>
+
+                            <div>
+                                <strong>
+                                    Aparece un régimen 2-6
+                                </strong>
+
+                                <p>
+                                    La trayectoria se clasifica como multirrégimen y se procesa completamente mediante el pipeline FD002.
+                                </p>
+                            </div>
+
+                            <div>
+                                <strong>
+                                    Transición de perfil
+                                </strong>
+
+                                <p>
+                                    Un motor externo puede evolucionar de FD001 a FD002 cuando aparecen nuevas condiciones operativas.
+                                </p>
+                            </div>
+
+                            <div>
+                                <strong>
+                                    Transición irreversible
+                                </strong>
+
+                                <p>
+                                    Una vez identificado como multirrégimen, el motor permanece en FD002 aunque posteriormente solo se observen ciclos del régimen 1.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="info-model-note">
+                            <strong>
+                                Condiciones no reconocidas
+                            </strong>
+
+                            <p>
+                                Si las variables operativas no corresponden a ninguno de los seis regímenes admitidos, no se realiza una aproximación al régimen más cercano. El motor se considera incompatible con los perfiles predictivos disponibles.
+                            </p>
+                        </div>
+                    </article>
+                </section>
+
+                <!-- ==================================================
+                    03. DETECCIÓN DE ANOMALÍAS
+                =================================================== -->
+                <section class="info-section">
+                    <div class="info-section-header">
+                        <span class="info-section-number">
+                            03
+                        </span>
+                        <div>
+                            <h2>
+                                Detección de anomalías
+                            </h2>
+                            <p>
+                                Identificación de comportamientos atípicos mediante Isolation Forest.
+                            </p>
+                        </div>
+                    </div>
+
+                    <article class="info-card info-model">
+                        <div class="info-model-header">
+                            <div>
+                                <span class="info-model-category">
+                                    MACHINE LEARNING
+                                </span>
+
+                                <h3>
+                                    Isolation Forest
+                                </h3>
+
+                            </div>
+
+                            <span class="info-model-type">
+                                Detección no supervisada
+                            </span>
+                        </div>
+
+                        <p>
+                            Isolation Forest asigna a cada observación una puntuación que representa el grado en que su comportamiento se diferencia de los datos utilizados como referencia para el entrenamiento.
+                        </p>
+
+                        <p>
+                            La plataforma dispone de un detector independiente para cada perfil predictivo. Por tanto, cada motor debe evaluarse con el modelo y el preprocesamiento correspondientes a su perfil.
+                        </p>
+
+                        <div class="info-model-parameters">
+                            <div>
+                                <span>
+                                    Sensores utilizados
+                                </span>
+                                <strong>
+                                    14
+                                </strong>
+                            </div>
+
+                            <div>
+                                <span>
+                                    Confirmación de alerta
+                                </span>
+                                <strong>
+                                    3 ciclos consecutivos
+                                </strong>
+                            </div>
+
+                            <div>
+                                <span>
+                                    Tipo de resultado
+                                </span>
+                                <strong>
+                                    Anomaly score
+                                </strong>
+                            </div>
+                        </div>
+
+                        <div class="info-grid">
+                            <div class="info-card">
+                                <h3>
+                                    Condición única
+                                </h3>
+
+                                <p>
+                                    Los 14 sensores se estandarizan con el scaler del pipeline FD001 antes de aplicar Isolation Forest.
+                                </p>
+
+                                <div class="info-inline-note">
+                                    Umbral FD001:
+                                    <strong>0,5199</strong>
+                                </div>
+                            </div>
+
+                            <div class="info-card">
+                                <h3>
+                                    Multirrégimen
+                                </h3>
+                                <p>
+                                    Los sensores se normalizan primero mediante estadísticas específicas de cada régimen operativo y después se evalúan con el detector FD002.
+                                </p>
+
+                                <div class="info-inline-note">
+                                    Umbral FD002: <strong>0,5187</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="info-model-note">
+                            <strong>
+                                Interpretación
+                            </strong>
+
+                            <p>
+                                Una alerta se confirma cuando el anomaly score supera el umbral correspondiente durante tres ciclos consecutivos.
+                            </p>
+
+                            <p>
+                                El anomaly score no es una probabilidad de fallo, ni un porcentaje de degradación.
+                            </p>
+
+                            <p>
+                                Además, los valores numéricos de FD001 y FD002 no deben compararse directamente entre sí porque proceden de modelos y preprocesamientos diferentes.
+                            </p>
+                        </div>
+                    </article>
+                </section>
+
+                <!-- ==================================================
+                    04. PROGNOSIS
+                =================================================== -->
+                <section class="info-section">
+                    <div class="info-section-header">
+                        <span class="info-section-number">04</span>
+                        <div>
+                            <h2>
+                                Estimación de vida útil restante
+                            </h2>
+                            <p>
+                                Prognosis mediante redes neuronales LSTM.
+                            </p>
+                        </div>
+                    </div>
+
+                    <article class="info-card info-model">
+                        <div class="info-model-header">
+                            <div>
+                                <span class="info-model-category">
+                                    DEEP LEARNING
+                                </span>
+                                <h3>
+                                    Red neuronal LSTM
+                                </h3>
+                            </div>
+                            <span class="info-model-type">
+                                Regresión
+                            </span>
+                        </div>
+
+                        <p>
+                            La Remaining Useful Life (RUL) representa el número de ciclos de funcionamiento restantes estimados antes del final de la vida útil del motor.
+                        </p>
+
+                        <p>
+                            Cada pipeline utiliza una red LSTM entrenada específicamente para su perfil operativo. Ambos modelos procesan ventanas temporales de 30 ciclos consecutivos y utilizan los mismos 14 sensores seleccionados.
+                        </p>
+
+                        <div class="info-model-parameters">
+                            <div>
+                                <span>
+                                    Ventana temporal
+                                </span>
+                                <strong>
+                                    30 ciclos
+                                </strong>
+                            </div>
+
+                            <div>
+                                <span>
+                                    Variables de entrada
+                                </span>
+                                <strong>
+                                    14 sensores
+                                </strong>
+                            </div>
+
+                            <div>
+                                <span>
+                                    Límite del objetivo
+                                </span>
+                                <strong>
+                                    120 ciclos
+                                </strong>
+                            </div>
+                        </div>
+
+                        <div class="info-model-note">
+                            <strong>
+                                Disponibilidad de la predicción
+                            </strong>
+                            <p>
+                                La LSTM necesita al menos 30 observaciones para construir una ventana temporal completa. Por este motivo, los motores con menos de 30 ciclos pueden disponer de detección de anomalías, pero todavía no tienen estimación de RUL.
+                            </p>
+
+                            <p>
+                                En el conjunto oficial FD002 existen seis motores cuyo historial observado contiene menos de 30 ciclos. Estos motores se mantienen en la flota, pero su RUL se muestra como no disponible.
+                            </p>
+                        </div>
+                    </article>
+
+                    <!-- RENDIMIENTO FD001 -->
+                    <article class="info-card info-model">
+                        <div class="info-model-header">
+                            <div>
+                                <span class="info-model-category">
+                                    PROGNOSIS · FD001
+                                </span>
+                                <h3>
+                                    Rendimiento · Condición única
+                                </h3>
+                            </div>
+                            <span class="info-model-type">
+                                Test FD001
+                            </span>
+                        </div>
+
+                        <div class="info-grid info-grid--three info-metrics">
+                            <div class="info-metric">
+                                <span>MAE</span>
+                                <strong>
+                                    8,71
+                                </strong>
+                                <small>
+                                    Error absoluto medio en ciclos
+                                </small>
+                            </div>
+
+                            <div class="info-metric">
+                                <span>RMSE</span>
+                                <strong>
+                                    12,18
+                                </strong>
+                                <small>
+                                    Raíz del error cuadrático medio
+                                </small>
+                            </div>
+
+                            <div class="info-metric">
+                                <span>R²</span>
+                                <strong>
+                                    0,9041
+                                </strong>
+                                <small>
+                                    Coeficiente de determinación
+                                </small>
+                            </div>
+                        </div>
+                    </article>
+
+                    <!-- RENDIMIENTO FD002 -->
+                    <article class="info-card info-model">
+                        <div class="info-model-header">
+                            <div>
+                                <span class="info-model-category">
+                                    PROGNOSIS · FD002
+                                </span>
+                                <h3>
+                                    Rendimiento · Multirrégimen
+                                </h3>
+                            </div>
+                            <span class="info-model-type">
+                                Test FD002
+                            </span>
+                        </div>
+
+                        <div class="info-grid info-grid--three info-metrics">
+                            <div class="info-metric">
+                                <span>MAE</span>
+                                <strong>
+                                    10,44
+                                </strong>
+                                <small>
+                                    Error absoluto medio en ciclos
+                                </small>
+                            </div>
+
+                            <div class="info-metric">
+                                <span>RMSE</span>
+                                <strong>
+                                    14,41
+                                </strong>
+                                <small>
+                                    Raíz del error cuadrático medio
+                                </small>
+                            </div>
+
+                            <div class="info-metric">
+                                <span>R²</span>
+                                <strong>
+                                    0,8791
+                                </strong>
+                                <small>
+                                    Coeficiente de determinación
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="info-inline-note">
+                            Cobertura de prognosis en el conjunto de test FD002: <strong>97,68 %</strong> (253 de 259 motores).
+                        </div>
+                    </article>
+
+                    <article class="info-card info-wide-card">
+                        <h3>
+                            Objetivo de RUL
+                        </h3>
+                        
+                        <p>
+                            Durante el entrenamiento, la RUL objetivo se limita a un máximo de 120 ciclos. Este tratamiento reduce la importancia de distinguir valores muy elevados durante las primeras fases de funcionamiento y concentra el aprendizaje en la zona de degradación más relevante.
+                        </p>
+
+                        <p>
+                            La salida de las redes LSTM no se recorta artificialmente después de realizar la predicción, por lo que puede superar ligeramente los 120 ciclos.
+                        </p>
+                    </article>
+                </section>
+
+
+                <!-- ==================================================
+                    05. INTERPRETACIÓN
+                =================================================== -->
+                <section class="info-section">
+                    <div class="info-section-header">
+                        <span class="info-section-number">05</span>
+                        <div>
+                            <h2>
+                                Interpretación de resultados
+                            </h2>
+                            <p>
+                                Significado de los principales indicadores mostrados por la plataforma.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="info-grid">
+                        <article class="info-card">
+                            <h3>
+                                Anomaly score
+                            </h3>
+                            <p>
+                                Es la puntuación generada por Isolation Forest para evaluar el carácter atípico de una observación dentro de su perfil predictivo.
+                            </p>
+                            <div class="info-inline-note">
+                                Debe interpretarse respecto al umbral de su propio perfil y no compararse directamente entre FD001 y FD002.
+                            </div>
+                        </article>
+
+                        <article class="info-card">
+                            <h3>
+                                Estado de alerta
+                            </h3>
+
+                            <p>
+                                Una alerta activa indica que el umbral de anomalía se ha superado durante tres ciclos consecutivos.
+                            </p>
+
+                            <p>
+                                Las alertas anteriores indican que el motor ha presentado al menos un episodio confirmado en algún punto de su historial.
+                            </p>
+
+                            <div class="info-inline-note">
+                                Una anomalía no confirma por sí sola la existencia de una avería.
+                            </div>
+                        </article>
+
+                        <article class="info-card">
+                            <h3>
+                                RUL estimada
+                            </h3>
+
+                            <p>
+                                Es el número de ciclos restantes estimado por la LSTM utilizando las últimas 30 observaciones disponibles.
+                            </p>
+
+                            <div class="info-inline-note">
+                                Una RUL reducida puede ayudar a priorizar la revisión de un motor, pero sigue siendo una predicción sujeta a error.
+                            </div>
+                        </article>
+
+                        <article class="info-card">
+                            <h3>
+                                Régimen operativo
+                            </h3>
+
+                            <p>
+                                En los motores multirrégimen indica la condición de funcionamiento asociada al ciclo actualmente consultado.
+                            </p>
+
+                            <p>
+                                Este valor se utiliza para aplicar la normalización correspondiente antes de ejecutar los modelos FD002.
+                            </p>
+                        </article>
+                    </div>
+
+                    <article class="info-card info-wide-card">
+                        <h3>
+                            Evolución temporal
+                        </h3>
+
+                        <p>
+                            La barra de reproducción permite seleccionar cualquier ciclo del historial y reconstruir el estado que podría haberse observado utilizando únicamente los datos disponibles hasta ese instante.
+                        </p>
+
+                        <p>
+                            Los gráficos de sensores, anomaly score y RUL se actualizan hasta el ciclo seleccionado y no incorporan observaciones posteriores.
+                        </p>
+
+                        <div class="info-model-note">
+                            <strong>
+                                Importante
+                            </strong>
+                            <p>
+                                El último ciclo disponible en C-MAPSS no representa necesariamente el instante de fallo. Los conjuntos de test contienen trayectorias truncadas y la vida útil restante real continúa después de la última observación disponible.
+                            </p>
+                        </div>
+                    </article>
+
+                    <article class="info-card info-wide-card">
+                        <h3>
+                            Modo evaluación
+                        </h3>
+
+                        <p>
+                            Para los motores NASA de referencia, la plataforma permite comparar las predicciones de prognosis con los valores reales de RUL proporcionados por C-MAPSS.
+                        </p>
+
+                        <div class="info-definition-list">
+                            <div>
+                                <strong>
+                                    RUL real
+                                </strong>
+                                <p>
+                                    Número de ciclos restantes reconstruido a partir de la referencia oficial del conjunto de test.
+                                </p>
+                            </div>
+
+                            <div>
+                                <strong>
+                                    RUL real limitada
+                                </strong>
+                                <p>
+                                    Valor de referencia limitado a 120 ciclos para mantener el mismo criterio utilizado como objetivo durante el entrenamiento.
+                                </p>
+                            </div>
+
+                            <div>
+                                <strong>
+                                    RUL estimada
+                                </strong>
+                                <p>
+                                    Predicción obtenida por la LSTM utilizando exclusivamente la información disponible hasta el ciclo consultado.
+                                </p>
+                            </div>
+
+                            <div>
+                                <strong>
+                                    Error absoluto
+                                </strong>
+                                <p>
+                                    Diferencia absoluta entre la RUL estimada y la RUL real limitada.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="info-model-note">
+                            <strong>
+                                Separación entre inferencia y evaluación
+                            </strong>
+                            <p>
+                                Los valores reales de RUL se utilizan exclusivamente para evaluar los resultados. Nunca forman parte de las variables de entrada de los modelos.
+                            </p>
+                            <p>
+                                El modo evaluación no está disponible para motores externos porque no existe una RUL real de referencia asociada a sus historiales.
+                            </p>
+                        </div>
+                    </article>
+                </section>
+
+                <!-- ==================================================
+                    06. IMPORTACIÓN Y ACTUALIZACIÓN
+                =================================================== -->
+                <section class="info-section">
+                    <div class="info-section-header">
+                        <span class="info-section-number">06</span>
+                        <div>
+                            <h2>
+                                Importación y actualización
+                            </h2>
+                            <p>
+                                Incorporación de trayectorias externas a los pipelines predictivos.
+                            </p>
+                        </div>
+                    </div>
+
+                    <article class="info-card">
+                        <h3>
+                            Formato de entrada
+                        </h3>
+                        <p>
+                            Los motores externos se incorporan mediante archivos CSV con datos raw. Cada observación representa un ciclo de funcionamiento.
+                        </p>
+                        <p>
+                            El esquema mínimo requiere 19 columnas: identificador del motor, ciclo, tres variables de condición operativa y los 14 sensores utilizados por los modelos.
+                        </p>
+                        <p>
+                            También pueden incluirse otros sensores originales de C-MAPSS. Las columnas desconocidas o variables internas de la plataforma no son admitidas.
+                        </p>
+                    </article>
+
+                    <div class="info-grid">
+                        <article class="info-card">
+                            <h3>
+                                Nueva importación
+                            </h3>
+                            <p>
+                                El historial debe comenzar en el ciclo 1, contener ciclos consecutivos y disponer de al menos 30 observaciones.
+                            </p>
+                            <p>
+                                Antes de guardar los datos se valida la estructura y se identifica el perfil predictivo de cada motor.
+                            </p>
+                        </article>
+
+                        <article class="info-card">
+                            <h3>
+                                Actualización
+                            </h3>
+                            <p>
+                                Para actualizar un motor externo debe proporcionarse nuevamente su trayectoria completa desde el ciclo 1 junto con las nuevas observaciones.
+                            </p>
+                            <p>
+                                Los ciclos ya almacenados no pueden modificarse. La actualización únicamente puede ampliar el historial.
+                            </p>
+                        </article>
+                    </div>
+
+                    <div class="info-model-note">
+                        <strong>
+                            Los modelos no se reentrenan
+                        </strong>
+                        <p>
+                            La importación y actualización de motores ejecutan inferencia utilizando los modelos ya entrenados. Incorporar nuevas trayectorias a la plataforma no modifica sus parámetros.
+                        </p>
+                    </div>
+                </section>
+
+                <!-- ==================================================
+                    07. ALCANCE Y LIMITACIONES
+                =================================================== -->
+                <section class="info-section">
+                    <div class="info-section-header">
+                        <span class="info-section-number">07</span>
+                        <div>
+                            <h2>
+                                Alcance y limitaciones
+                            </h2>
+                            <p>
+                                Condiciones para interpretar correctamente los resultados.
+                            </p>
+                        </div>
+                    </div>
+
+                    <article class="info-card">
+                        <h3>
+                            Entorno de análisis
+                        </h3>
+                        <p>
+                            La plataforma trabaja actualmente con datos históricos y permite simular la llegada progresiva de información mediante la reproducción ciclo a ciclo.
+                        </p>
+                        <p>
+                            No existe una conexión directa con motores físicos, sensores industriales ni sistemas de adquisición de datos en tiempo real.
+                        </p>
+                    </article>
+
+                    <article class="info-card info-wide-card">
+                        <h3>
+                            Consideraciones importantes
+                        </h3>
+
+                        <div class="info-limitations">
+                            <div>
+                                <span class="info-limitation-dot"></span>
+                                <p>
+                                    Los modelos han sido desarrollados específicamente a partir de los perfiles FD001 y FD002 de NASA C-MAPSS. Sus resultados no pueden generalizarse automáticamente a cualquier sistema industrial.
+                                </p>
+                            </div>
+
+                            <div>
+                                <span class="info-limitation-dot"></span>
+                                <p>
+                                    La detección de anomalías identifica comportamientos atípicos, pero no clasifica automáticamente la causa concreta del posible fallo.
+                                </p>
+                            </div>
+
+                            <div>
+                                <span class="info-limitation-dot"></span>
+                                <p>
+                                    La RUL es una estimación estadística y no constituye una fecha de fallo garantizada.
+                                </p>
+                            </div>
+
+                            <div>
+                                <span class="info-limitation-dot"></span>
+                                <p>
+                                    Los anomaly scores de perfiles diferentes no deben utilizarse para establecer una clasificación global de motores.
+                                </p>
+                            </div>
+
+                            <div>
+                                <span class="info-limitation-dot"></span>
+                                <p>
+                                    Para un despliegue industrial real serían necesarias nuevas validaciones, adaptación a la instrumentación del equipo, integración con la adquisición de datos y seguimiento continuado del rendimiento de los modelos.
+                                </p>
+                            </div>
+                        </div>
+                    </article>
+                </section>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

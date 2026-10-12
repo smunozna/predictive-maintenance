@@ -1,0 +1,56 @@
+{
+    "dataset": "FD002",
+    "window_size": 30,
+    "rul_max": 120,
+    "sensores_modelo": [
+        "sensor_2",
+        "sensor_3",
+        "sensor_4",
+        "sensor_7",
+        "sensor_8",
+        "sensor_9",
+        "sensor_11",
+        "sensor_12",
+        "sensor_13",
+        "sensor_14",
+        "sensor_15",
+        "sensor_17",
+        "sensor_20",
+        "sensor_21"
+    ],
+    "features_modelo": [
+        "sensor_2_norm",
+        "sensor_3_norm",
+        "sensor_4_norm",
+        "sensor_7_norm",
+        "sensor_8_norm",
+        "sensor_9_norm",
+        "sensor_11_norm",
+        "sensor_12_norm",
+        "sensor_13_norm",
+        "sensor_14_norm",
+        "sensor_15_norm",
+        "sensor_17_norm",
+        "sensor_20_norm",
+        "sensor_21_norm"
+    ],
+    "architecture": {
+        "lstm_units": 64,
+        "dropout": 0.2,
+        "dense_units": 32,
+        "output_activation": "linear"
+    },
+    "training": {
+        "epochs": 14,
+        "batch_size": 64
+    },
+    "test": {
+        "total_engines": 259,
+        "evaluated_engines": 253,
+        "coverage_percent": 97.68339768339769,
+        "mae": 10.440522193908691,
+        "rmse": 14.413375449411673,
+        "r2": 0.8790627121925354,
+        "mean_bias": -0.3170532709053854
+    }
+}
